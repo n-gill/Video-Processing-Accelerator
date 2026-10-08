@@ -1,0 +1,57 @@
+'`timescale 1ns/1ps
+module input_buffer_tb;
+    localparam CLOCK_PERIOD = 20; // 50 MHz
+    wire CLOCK_50; 
+    wire resetn; 
+    wire [10:0] height; 
+    wire [10:0] width; 
+    wire start;
+    logic sof; 
+    logic eol; 
+    logic eof;
+    logic streaming;
+    logic [11:0] pixel_data;
+    input_frame_buffer#(
+        12,
+        1080,
+        1920,
+        "../test sample files/frame.hex"
+    ) dut (
+        clk,
+        resetn,
+        height,
+        width,
+        start,
+        sof,
+        eol,
+        eof,
+        streaming,
+        pixel_data
+    );
+    initial clk = 0;
+    always #(CLOCK_PERIOD / 2) clk = ~clk;
+    initial begin
+        resetn = 0;
+        start = 0;
+        @(posedge clk);
+        resetn = 1;
+        @(posedge clk);
+        resetn = 0;
+        @(posedge clk);
+        start = 1;
+        @(posedge clk);
+        start = 0;
+    end
+
+    logic [DATA_WIDTH-1:0] captured [0:IMG_WIDTH*IMG_HEIGHT-1];
+    int capture_idx;
+
+    initial capture_idx = 0;
+
+    always_ff @(posedge clk) begin
+        if (streaming) begin
+            captured[capture_idx] <= pixel_data;
+            capture_idx           <= capture_idx + 1;
+        end
+    end
+endmodule
